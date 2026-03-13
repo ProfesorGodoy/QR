@@ -1,1 +1,193 @@
-<!DOCTYPE html> <html lang="es"> <head> <meta charset="UTF-8"> <title>Sistema QR Bar</title> <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script> <style> body{ font-family: Arial; text-align:center; margin:30px; } button{ padding:12px; margin:5px; font-size:16px; cursor:pointer; } #qrcode{ margin:20px; } table{ margin:auto; border-collapse:collapse; } td,th{ border:1px solid black; padding:10px; } </style> </head> <body> <h1>🍔 Sistema de Pedidos del Bar</h1> <h2 id="numeroPedido"></h2> <button onclick="nuevoPedido()">Crear nuevo pedido</button> <div id="qrcode"></div> <hr> <h2>Panel del Bar</h2> <table> <tr> <th>Pedido</th> <th>Estado</th> <th>Acción</th> </tr> <tbody id="tablaPedidos"></tbody> </table> <script> let contador = 1 let pedidos = [] function nuevoPedido(){ let pedido = contador++ pedidos.push({ numero:pedido, estado:"Preparando" }) document.getElementById("numeroPedido").innerHTML = "Pedido #" + pedido let url = window.location.href + "?pedido=" + pedido document.getElementById("qrcode").innerHTML = "" new QRCode( document.getElementById("qrcode"), url ) actualizarTabla() } function actualizarTabla(){ let tabla = document.getElementById("tablaPedidos") tabla.innerHTML = "" pedidos.forEach(p => { tabla.innerHTML += <tr> <td>${p.numero}</td> <td>${p.estado}</td> <td> <button onclick="marcarListo(${p.numero})"> Pedido listo </button> </td> </tr> }) } function marcarListo(numero){ pedidos.forEach(p => { if(p.numero === numero){ p.estado = "Listo" if(Notification.permission === "granted"){ new Notification("🍔 Pedido listo #" + numero) } } }) actualizarTabla() } if(Notification.permission !== "granted"){ Notification.requestPermission() } </script> </body> </html>
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+<meta charset="UTF-8">
+<title>Sistema QR Bar</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<style>
+
+body{
+font-family: Arial;
+text-align:center;
+margin:30px;
+background:#f4f4f4;
+}
+
+h1{
+color:#333;
+}
+
+button{
+padding:12px;
+margin:5px;
+font-size:16px;
+cursor:pointer;
+border:none;
+background:#2c7be5;
+color:white;
+border-radius:6px;
+}
+
+button:hover{
+background:#1a5dc9;
+}
+
+#qrcode{
+margin:20px;
+}
+
+table{
+margin:auto;
+border-collapse:collapse;
+background:white;
+box-shadow:0 0 10px rgba(0,0,0,0.2);
+}
+
+td,th{
+border:1px solid #ddd;
+padding:10px;
+}
+
+th{
+background:#eee;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>🍔 Sistema de Pedidos del Bar</h1>
+
+<h2 id="numeroPedido"></h2>
+
+<button onclick="nuevoPedido()">Crear nuevo pedido</button>
+
+<div id="qrcode"></div>
+
+<hr>
+
+<h2>Panel del Bar</h2>
+
+<table>
+
+<tr>
+<th>Pedido</th>
+<th>Estado</th>
+<th>Acción</th>
+</tr>
+
+<tbody id="tablaPedidos"></tbody>
+
+</table>
+
+<script>
+
+let contador = localStorage.getItem("contador") 
+? parseInt(localStorage.getItem("contador")) 
+: 1
+
+let pedidos = localStorage.getItem("pedidos") 
+? JSON.parse(localStorage.getItem("pedidos")) 
+: []
+
+function guardarDatos(){
+
+localStorage.setItem("contador", contador)
+
+localStorage.setItem(
+"pedidos",
+JSON.stringify(pedidos)
+)
+
+}
+
+function nuevoPedido(){
+
+let pedido = contador++
+
+pedidos.push({
+numero:pedido,
+estado:"Preparando"
+})
+
+guardarDatos()
+
+document.getElementById("numeroPedido").innerHTML =
+"Pedido #" + pedido
+
+let url = window.location.href + "?pedido=" + pedido
+
+document.getElementById("qrcode").innerHTML = ""
+
+new QRCode(
+document.getElementById("qrcode"),
+url
+)
+
+actualizarTabla()
+
+}
+
+function actualizarTabla(){
+
+let tabla = document.getElementById("tablaPedidos")
+
+tabla.innerHTML = ""
+
+pedidos.forEach(p => {
+
+tabla.innerHTML += `
+<tr>
+<td>${p.numero}</td>
+<td>${p.estado}</td>
+<td>
+<button onclick="marcarListo(${p.numero})">
+Pedido listo
+</button>
+</td>
+</tr>
+`
+
+})
+
+}
+
+function marcarListo(numero){
+
+pedidos.forEach(p => {
+
+if(p.numero === numero){
+
+p.estado = "Listo"
+
+if(Notification.permission === "granted"){
+new Notification("🍔 Pedido listo #" + numero)
+}
+
+}
+
+})
+
+guardarDatos()
+
+actualizarTabla()
+
+}
+
+if(Notification.permission !== "granted"){
+Notification.requestPermission()
+}
+
+actualizarTabla()
+
+</script>
+
+</body>
+
+</html>
