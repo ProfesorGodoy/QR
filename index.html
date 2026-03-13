@@ -190,15 +190,46 @@ document.getElementById("app").innerHTML = `
 
 <h1>🍔 Pedido #${numero}</h1>
 
-<h2 id="estadoPedido">Tu pedido está en preparación</h2>
+<h2 id="estadoPedido">Preparando...</h2>
 
 <br>
 
 <button onclick="activarNotificaciones()">
-¿Querés que te avisemos cuando esté tu pedido?
+Activar notificaciones 🔔
 </button>
 
 `
+
+let numeroPedido = numero
+
+function revisarEstado(){
+
+let pedidos = JSON.parse(localStorage.getItem("pedidos")) || []
+
+let pedido = pedidos.find(p => p.numero == numeroPedido)
+
+if(pedido){
+
+document.getElementById("estadoPedido").innerHTML =
+"Estado: " + pedido.estado
+
+if(pedido.estado === "Listo"){
+
+if(Notification.permission === "granted"){
+
+new Notification("🍔 Pedido listo",{
+body:"Tu pedido ya está listo para retirar"
+})
+
+}
+
+}
+
+}
+
+}
+
+setInterval(revisarEstado,2000)
 
 }
 
@@ -208,7 +239,7 @@ Notification.requestPermission().then(permission => {
 
 if(permission === "granted"){
 
-alert("Te avisaremos cuando tu pedido esté listo 🍔")
+alert("Te avisaremos cuando esté listo 🍔")
 
 }
 
