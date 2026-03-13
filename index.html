@@ -4,6 +4,8 @@
 <head>
 
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Sistema QR Bar</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -17,18 +19,26 @@ body{
 font-family:Arial;
 text-align:center;
 background:#f4f4f4;
-margin:30px;
+margin:10px;
+}
+
+h1{
+font-size:40px;
+}
+
+h2{
+font-size:32px;
 }
 
 button{
-padding:12px;
-margin:5px;
-font-size:16px;
+padding:15px;
+margin:10px;
+font-size:20px;
 background:#2c7be5;
 color:white;
 border:none;
-border-radius:6px;
-cursor:pointer;
+border-radius:10px;
+width:250px;
 }
 
 button:hover{
@@ -36,15 +46,17 @@ background:#1a5dc9;
 }
 
 table{
+width:95%;
 margin:auto;
 background:white;
 border-collapse:collapse;
 box-shadow:0 0 10px rgba(0,0,0,0.2);
+font-size:22px;
 }
 
 td,th{
 border:1px solid #ddd;
-padding:10px;
+padding:15px;
 }
 
 th{
@@ -53,6 +65,29 @@ background:#eee;
 
 #qrcode{
 margin:20px;
+display:flex;
+justify-content:center;
+}
+
+.estadoGrande{
+font-size:50px;
+color:#d9534f;
+}
+
+@media (max-width:600px){
+
+h1{
+font-size:32px;
+}
+
+h2{
+font-size:26px;
+}
+
+.estadoGrande{
+font-size:40px;
+}
+
 }
 
 </style>
@@ -65,7 +100,11 @@ margin:20px;
 
 <script>
 
-/* FIREBASE CONFIG */
+/* SONIDO */
+
+const sonido = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+
+/* FIREBASE */
 
 const firebaseConfig = {
   apiKey: "AIzaSyCCT3w5_33bR-RZ5TTAY_tGk9Ur5UE5mLM",
@@ -78,7 +117,6 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-
 const db = firebase.database();
 
 let contador = 1;
@@ -109,11 +147,11 @@ function cargarBar(){
 
 document.getElementById("app").innerHTML=`
 
-<h1>🍔 Sistema de Pedidos del Bar</h1>
+<h1>🍔 Sistema de Pedidos</h1>
 
 <h2 id="numeroPedido"></h2>
 
-<button onclick="nuevoPedido()">Crear nuevo pedido</button>
+<button onclick="nuevoPedido()">Nuevo Pedido</button>
 
 <div id="qrcode"></div>
 
@@ -138,7 +176,6 @@ document.getElementById("app").innerHTML=`
 db.ref("pedidos").on("value",snapshot=>{
 
 let datos=snapshot.val();
-
 let html="";
 
 for(let p in datos){
@@ -146,10 +183,10 @@ for(let p in datos){
 html+=`
 
 <tr>
-<td>${p}</td>
+<td>#${p}</td>
 <td>${datos[p].estado}</td>
 <td>
-<button onclick="marcarListo(${p})">Pedido listo</button>
+<button onclick="marcarListo(${p})">Listo</button>
 </td>
 </tr>
 
@@ -181,22 +218,28 @@ document.getElementById("app").innerHTML=`
 
 <h1>🍔 Pedido #${numero}</h1>
 
-<h2 id="estadoPedido">Esperando estado...</h2>
+<h2 id="estadoPedido" class="estadoGrande">Preparando...</h2>
 
 `;
+
+let yaAvisado=false;
 
 db.ref("pedidos/"+numero).on("value",snapshot=>{
 
 let estado=snapshot.val().estado;
 
-document.getElementById("estadoPedido").innerHTML="Estado: "+estado;
+document.getElementById("estadoPedido").innerHTML=estado;
 
-if(estado==="Listo"){
+if(estado==="Listo" && !yaAvisado){
+
+yaAvisado=true;
+
+sonido.play();
 
 if(Notification.permission==="granted"){
 
 new Notification("🍔 Pedido listo",{
-body:"Tu pedido ya está listo para retirar"
+body:"Tu pedido está listo para retirar"
 });
 
 }
@@ -212,7 +255,6 @@ Notification.requestPermission();
 /* DETECTAR MODO */
 
 const params=new URLSearchParams(window.location.search);
-
 const pedido=params.get("pedido");
 
 if(pedido){
