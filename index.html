@@ -62,29 +62,7 @@ background:#eee;
 
 <body>
 
-<h1>🍔 Sistema de Pedidos del Bar</h1>
-
-<h2 id="numeroPedido"></h2>
-
-<button onclick="nuevoPedido()">Crear nuevo pedido</button>
-
-<div id="qrcode"></div>
-
-<hr>
-
-<h2>Panel del Bar</h2>
-
-<table>
-
-<tr>
-<th>Pedido</th>
-<th>Estado</th>
-<th>Acción</th>
-</tr>
-
-<tbody id="tablaPedidos"></tbody>
-
-</table>
+<div id="app"></div>
 
 <script>
 
@@ -99,11 +77,7 @@ let pedidos = localStorage.getItem("pedidos")
 function guardarDatos(){
 
 localStorage.setItem("contador", contador)
-
-localStorage.setItem(
-"pedidos",
-JSON.stringify(pedidos)
-)
+localStorage.setItem("pedidos", JSON.stringify(pedidos))
 
 }
 
@@ -118,10 +92,10 @@ estado:"Preparando"
 
 guardarDatos()
 
+let url = window.location.href.split("?")[0] + "?pedido=" + pedido
+
 document.getElementById("numeroPedido").innerHTML =
 "Pedido #" + pedido
-
-let url = window.location.href + "?pedido=" + pedido
 
 document.getElementById("qrcode").innerHTML = ""
 
@@ -166,10 +140,6 @@ if(p.numero === numero){
 
 p.estado = "Listo"
 
-if(Notification.permission === "granted"){
-new Notification("🍔 Pedido listo #" + numero)
-}
-
 }
 
 })
@@ -180,11 +150,85 @@ actualizarTabla()
 
 }
 
-if(Notification.permission !== "granted"){
-Notification.requestPermission()
-}
+function cargarModoBar(){
+
+document.getElementById("app").innerHTML = `
+
+<h1>🍔 Sistema de Pedidos del Bar</h1>
+
+<h2 id="numeroPedido"></h2>
+
+<button onclick="nuevoPedido()">Crear nuevo pedido</button>
+
+<div id="qrcode"></div>
+
+<hr>
+
+<h2>Panel del Bar</h2>
+
+<table>
+
+<tr>
+<th>Pedido</th>
+<th>Estado</th>
+<th>Acción</th>
+</tr>
+
+<tbody id="tablaPedidos"></tbody>
+
+</table>
+
+`
 
 actualizarTabla()
+
+}
+
+function cargarModoCliente(numero){
+
+document.getElementById("app").innerHTML = `
+
+<h1>🍔 Pedido #${numero}</h1>
+
+<h2 id="estadoPedido">Tu pedido está en preparación</h2>
+
+<br>
+
+<button onclick="activarNotificaciones()">
+¿Querés que te avisemos cuando esté tu pedido?
+</button>
+
+`
+
+}
+
+function activarNotificaciones(){
+
+Notification.requestPermission().then(permission => {
+
+if(permission === "granted"){
+
+alert("Te avisaremos cuando tu pedido esté listo 🍔")
+
+}
+
+})
+
+}
+
+const params = new URLSearchParams(window.location.search)
+
+const pedidoCliente = params.get("pedido")
+
+if(pedidoCliente){
+
+cargarModoCliente(pedidoCliente)
+
+}else{
+
+cargarModoBar()
+
+}
 
 </script>
 
