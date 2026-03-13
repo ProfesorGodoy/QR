@@ -8,42 +8,37 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+
 <style>
 
 body{
-font-family: Arial;
+font-family:Arial;
 text-align:center;
-margin:30px;
 background:#f4f4f4;
-}
-
-h1{
-color:#333;
+margin:30px;
 }
 
 button{
 padding:12px;
 margin:5px;
 font-size:16px;
-cursor:pointer;
-border:none;
 background:#2c7be5;
 color:white;
+border:none;
 border-radius:6px;
+cursor:pointer;
 }
 
 button:hover{
 background:#1a5dc9;
 }
 
-#qrcode{
-margin:20px;
-}
-
 table{
 margin:auto;
-border-collapse:collapse;
 background:white;
+border-collapse:collapse;
 box-shadow:0 0 10px rgba(0,0,0,0.2);
 }
 
@@ -56,6 +51,10 @@ th{
 background:#eee;
 }
 
+#qrcode{
+margin:20px;
+}
+
 </style>
 
 </head>
@@ -66,93 +65,49 @@ background:#eee;
 
 <script>
 
-let contador = localStorage.getItem("contador") 
-? parseInt(localStorage.getItem("contador")) 
-: 1
+/* FIREBASE CONFIG */
 
-let pedidos = localStorage.getItem("pedidos") 
-? JSON.parse(localStorage.getItem("pedidos")) 
-: []
+const firebaseConfig = {
+  apiKey: "AIzaSyCCT3w5_33bR-RZ5TTAY_tGk9Ur5UE5mLM",
+  authDomain: "sistema-bar-782a3.firebaseapp.com",
+  databaseURL: "https://sistema-bar-782a3-default-rtdb.firebaseio.com",
+  projectId: "sistema-bar-782a3",
+  storageBucket: "sistema-bar-782a3.firebasestorage.app",
+  messagingSenderId: "806007161788",
+  appId: "1:806007161788:web:d4e19142ac9fda3fb121b9"
+};
 
-function guardarDatos(){
+firebase.initializeApp(firebaseConfig);
 
-localStorage.setItem("contador", contador)
-localStorage.setItem("pedidos", JSON.stringify(pedidos))
+const db = firebase.database();
 
-}
+let contador = 1;
+
+/* CREAR PEDIDO */
 
 function nuevoPedido(){
 
-let pedido = contador++
+let numero = contador++;
 
-pedidos.push({
-numero:pedido,
+db.ref("pedidos/"+numero).set({
 estado:"Preparando"
-})
+});
 
-guardarDatos()
+let url = window.location.href.split("?")[0] + "?pedido=" + numero;
 
-let url = window.location.href.split("?")[0] + "?pedido=" + pedido
+document.getElementById("numeroPedido").innerHTML="Pedido #"+numero;
 
-document.getElementById("numeroPedido").innerHTML =
-"Pedido #" + pedido
+document.getElementById("qrcode").innerHTML="";
 
-document.getElementById("qrcode").innerHTML = ""
-
-new QRCode(
-document.getElementById("qrcode"),
-url
-)
-
-actualizarTabla()
+new QRCode(document.getElementById("qrcode"),url);
 
 }
 
-function actualizarTabla(){
+/* PANEL BAR */
 
-let tabla = document.getElementById("tablaPedidos")
+function cargarBar(){
 
-tabla.innerHTML = ""
-
-pedidos.forEach(p => {
-
-tabla.innerHTML += `
-<tr>
-<td>${p.numero}</td>
-<td>${p.estado}</td>
-<td>
-<button onclick="marcarListo(${p.numero})">
-Pedido listo
-</button>
-</td>
-</tr>
-`
-
-})
-
-}
-
-function marcarListo(numero){
-
-pedidos.forEach(p => {
-
-if(p.numero === numero){
-
-p.estado = "Listo"
-
-}
-
-})
-
-guardarDatos()
-
-actualizarTabla()
-
-}
-
-function cargarModoBar(){
-
-document.getElementById("app").innerHTML = `
+document.getElementById("app").innerHTML=`
 
 <h1>🍔 Sistema de Pedidos del Bar</h1>
 
@@ -178,86 +133,95 @@ document.getElementById("app").innerHTML = `
 
 </table>
 
-`
+`;
 
-actualizarTabla()
+db.ref("pedidos").on("value",snapshot=>{
+
+let datos=snapshot.val();
+
+let html="";
+
+for(let p in datos){
+
+html+=`
+
+<tr>
+<td>${p}</td>
+<td>${datos[p].estado}</td>
+<td>
+<button onclick="marcarListo(${p})">Pedido listo</button>
+</td>
+</tr>
+
+`;
 
 }
 
-function cargarModoCliente(numero){
+document.getElementById("tablaPedidos").innerHTML=html;
 
-document.getElementById("app").innerHTML = `
+});
+
+}
+
+/* MARCAR LISTO */
+
+function marcarListo(numero){
+
+db.ref("pedidos/"+numero).update({
+estado:"Listo"
+});
+
+}
+
+/* CLIENTE */
+
+function cargarCliente(numero){
+
+document.getElementById("app").innerHTML=`
 
 <h1>🍔 Pedido #${numero}</h1>
 
-<h2 id="estadoPedido">Preparando...</h2>
+<h2 id="estadoPedido">Esperando estado...</h2>
 
-<br>
+`;
 
-<button onclick="activarNotificaciones()">
-Activar notificaciones 🔔
-</button>
+db.ref("pedidos/"+numero).on("value",snapshot=>{
 
-`
+let estado=snapshot.val().estado;
 
-let numeroPedido = numero
+document.getElementById("estadoPedido").innerHTML="Estado: "+estado;
 
-function revisarEstado(){
+if(estado==="Listo"){
 
-let pedidos = JSON.parse(localStorage.getItem("pedidos")) || []
-
-let pedido = pedidos.find(p => p.numero == numeroPedido)
-
-if(pedido){
-
-document.getElementById("estadoPedido").innerHTML =
-"Estado: " + pedido.estado
-
-if(pedido.estado === "Listo"){
-
-if(Notification.permission === "granted"){
+if(Notification.permission==="granted"){
 
 new Notification("🍔 Pedido listo",{
 body:"Tu pedido ya está listo para retirar"
-})
+});
 
 }
 
 }
 
-}
+});
+
+Notification.requestPermission();
 
 }
 
-setInterval(revisarEstado,2000)
+/* DETECTAR MODO */
 
-}
+const params=new URLSearchParams(window.location.search);
 
-function activarNotificaciones(){
+const pedido=params.get("pedido");
 
-Notification.requestPermission().then(permission => {
+if(pedido){
 
-if(permission === "granted"){
-
-alert("Te avisaremos cuando esté listo 🍔")
-
-}
-
-})
-
-}
-
-const params = new URLSearchParams(window.location.search)
-
-const pedidoCliente = params.get("pedido")
-
-if(pedidoCliente){
-
-cargarModoCliente(pedidoCliente)
+cargarCliente(pedido);
 
 }else{
 
-cargarModoBar()
+cargarBar();
 
 }
 
