@@ -18,76 +18,66 @@
 body{
 font-family:Arial;
 text-align:center;
+margin:0;
 background:#f4f4f4;
-margin:10px;
 }
 
 h1{
 font-size:40px;
 }
 
-h2{
-font-size:32px;
+.estado{
+font-size:60px;
+font-weight:bold;
+margin-top:20px;
 }
 
 button{
-padding:15px;
+padding:18px;
 margin:10px;
-font-size:20px;
+font-size:22px;
 background:#2c7be5;
 color:white;
 border:none;
 border-radius:10px;
-width:250px;
 }
 
-button:hover{
-background:#1a5dc9;
+/* PARPADEO */
+
+.alerta{
+animation:flash 0.6s infinite;
+}
+
+@keyframes flash{
+
+0%{
+background:red;
+color:white;
+}
+
+50%{
+background:white;
+color:red;
+}
+
+100%{
+background:red;
+color:white;
+}
+
 }
 
 table{
 width:95%;
 margin:auto;
-background:white;
 border-collapse:collapse;
-box-shadow:0 0 10px rgba(0,0,0,0.2);
 font-size:22px;
+background:white;
 }
 
 td,th{
-border:1px solid #ddd;
-padding:15px;
-}
-
-th{
-background:#eee;
-}
-
-#qrcode{
-margin:20px;
-display:flex;
-justify-content:center;
-}
-
-.estadoGrande{
-font-size:50px;
-color:#d9534f;
-}
-
-@media (max-width:600px){
-
-h1{
-font-size:32px;
-}
-
-h2{
-font-size:26px;
-}
-
-.estadoGrande{
-font-size:40px;
-}
-
+border:1px solid #ccc;
+padding:12px;
 }
 
 </style>
@@ -102,81 +92,104 @@ font-size:40px;
 
 /* SONIDO */
 
-const sonido = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+let sonidoActivado=false
+
+const beep = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg")
+
+function activarSonido(){
+
+beep.play()
+sonidoActivado=true
+alert("Sonido activado")
+
+}
+
+function sonarAlarma(){
+
+setInterval(()=>{
+
+beep.currentTime=0
+beep.play()
+
+},1000)
+
+}
 
 /* FIREBASE */
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCCT3w5_33bR-RZ5TTAY_tGk9Ur5UE5mLM",
-  authDomain: "sistema-bar-782a3.firebaseapp.com",
-  databaseURL: "https://sistema-bar-782a3-default-rtdb.firebaseio.com",
-  projectId: "sistema-bar-782a3",
-  storageBucket: "sistema-bar-782a3.firebasestorage.app",
-  messagingSenderId: "806007161788",
-  appId: "1:806007161788:web:d4e19142ac9fda3fb121b9"
-};
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+apiKey: "AIzaSyCCT3w5_33bR-RZ5TTAY_tGk9Ur5UE5mLM",
+authDomain: "sistema-bar-782a3.firebaseapp.com",
+databaseURL: "https://sistema-bar-782a3-default-rtdb.firebaseio.com",
+projectId: "sistema-bar-782a3",
+storageBucket: "sistema-bar-782a3.firebasestorage.app",
+messagingSenderId: "806007161788",
+appId: "1:806007161788:web:d4e19142ac9fda3fb121b9"
 
-let contador = 1;
+}
+
+firebase.initializeApp(firebaseConfig)
+
+const db=firebase.database()
+
+let contador=1
 
 /* CREAR PEDIDO */
 
 function nuevoPedido(){
 
-let numero = contador++;
+let numero=contador++
 
 db.ref("pedidos/"+numero).set({
 estado:"Preparando"
-});
+})
 
-let url = window.location.href.split("?")[0] + "?pedido=" + numero;
+let url=window.location.href.split("?")[0]+"?pedido="+numero
 
-document.getElementById("numeroPedido").innerHTML="Pedido #"+numero;
+document.getElementById("num").innerHTML="Pedido #"+numero
 
-document.getElementById("qrcode").innerHTML="";
+document.getElementById("qrcode").innerHTML=""
 
-new QRCode(document.getElementById("qrcode"),url);
+new QRCode(document.getElementById("qrcode"),url)
 
 }
 
 /* PANEL BAR */
 
-function cargarBar(){
+function modoBar(){
 
 document.getElementById("app").innerHTML=`
 
-<h1>🍔 Sistema de Pedidos</h1>
+<h1>🍔 Panel del Bar</h1>
 
-<h2 id="numeroPedido"></h2>
+<h2 id="num"></h2>
 
-<button onclick="nuevoPedido()">Nuevo Pedido</button>
+<button onclick="nuevoPedido()">Nuevo pedido</button>
 
 <div id="qrcode"></div>
 
 <hr>
-
-<h2>Panel del Bar</h2>
 
 <table>
 
 <tr>
 <th>Pedido</th>
 <th>Estado</th>
-<th>Acción</th>
+<th></th>
 </tr>
 
-<tbody id="tablaPedidos"></tbody>
+<tbody id="tabla"></tbody>
 
 </table>
 
-`;
+`
 
-db.ref("pedidos").on("value",snapshot=>{
+db.ref("pedidos").on("value",snap=>{
 
-let datos=snapshot.val();
-let html="";
+let datos=snap.val()
+
+let html=""
 
 for(let p in datos){
 
@@ -186,84 +199,83 @@ html+=`
 <td>#${p}</td>
 <td>${datos[p].estado}</td>
 <td>
-<button onclick="marcarListo(${p})">Listo</button>
+<button onclick="listo(${p})">Listo</button>
 </td>
 </tr>
 
-`;
+`
 
 }
 
-document.getElementById("tablaPedidos").innerHTML=html;
+document.getElementById("tabla").innerHTML=html
 
-});
+})
 
 }
 
-/* MARCAR LISTO */
+function listo(n){
 
-function marcarListo(numero){
-
-db.ref("pedidos/"+numero).update({
+db.ref("pedidos/"+n).update({
 estado:"Listo"
-});
+})
 
 }
 
 /* CLIENTE */
 
-function cargarCliente(numero){
+function modoCliente(n){
 
 document.getElementById("app").innerHTML=`
 
-<h1>🍔 Pedido #${numero}</h1>
+<h1>🍔 Pedido #${n}</h1>
 
-<h2 id="estadoPedido" class="estadoGrande">Preparando...</h2>
+<div id="estado" class="estado">Preparando</div>
 
-`;
+<br>
 
-let yaAvisado=false;
+<button onclick="activarSonido()">🔊 Activar sonido</button>
 
-db.ref("pedidos/"+numero).on("value",snapshot=>{
+`
 
-let estado=snapshot.val().estado;
+let avisado=false
 
-document.getElementById("estadoPedido").innerHTML=estado;
+db.ref("pedidos/"+n).on("value",snap=>{
 
-if(estado==="Listo" && !yaAvisado){
+let estado=snap.val().estado
 
-yaAvisado=true;
+document.getElementById("estado").innerHTML=estado
 
-sonido.play();
+if(estado==="Listo" && !avisado){
 
-if(Notification.permission==="granted"){
+avisado=true
 
-new Notification("🍔 Pedido listo",{
-body:"Tu pedido está listo para retirar"
-});
+document.body.classList.add("alerta")
+
+if(sonidoActivado){
+
+sonarAlarma()
 
 }
 
 }
 
-});
-
-Notification.requestPermission();
+})
 
 }
 
 /* DETECTAR MODO */
 
-const params=new URLSearchParams(window.location.search);
-const pedido=params.get("pedido");
+const params=new URLSearchParams(window.location.search)
+
+const pedido=params.get("pedido")
 
 if(pedido){
 
-cargarCliente(pedido);
+modoCliente(pedido)
 
 }else{
 
-cargarBar();
+modoBar()
 
 }
 
