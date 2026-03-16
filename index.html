@@ -80,6 +80,7 @@ padding:12px;
 /* SONIDO */
 
 let sonidoActivado=false
+
 const beep = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg")
 
 function activarSonido(){
@@ -109,7 +110,7 @@ apiKey: "TU_API_KEY",
 authDomain: "sistema-bar-782a3.firebaseapp.com",
 databaseURL: "https://sistema-bar-782a3-default-rtdb.firebaseio.com",
 projectId: "sistema-bar-782a3",
-storageBucket: "sistema-bar-782a3.firebasestorage.app",
+storageBucket: "sistema-bar-782a3.appspot.com",
 messagingSenderId: "806007161788",
 appId: "1:806007161788:web:d4e19142ac9fda3fb121b9"
 
@@ -123,7 +124,7 @@ const db=firebase.database()
 
 function generarNumero(){
 
-return Date.now() // nunca se repite
+return Date.now()
 
 }
 
@@ -182,15 +183,18 @@ db.ref("pedidos").on("value",snap=>{
 
 let datos=snap.val()
 
-if(!datos) return
+if(!datos){
+document.getElementById("tabla").innerHTML=""
+return
+}
 
 let pedidos=Object.entries(datos)
 
-/* ordenar por mas nuevos */
+/* ordenar por nuevos */
 
 pedidos.sort((a,b)=>b[1].timestamp-a[1].timestamp)
 
-/* SOLO 10 PEDIDOS */
+/* maximo 10 */
 
 pedidos=pedidos.slice(0,10)
 
@@ -221,11 +225,19 @@ document.getElementById("tabla").innerHTML=html
 
 }
 
-/* LISTO Y ELIMINAR */
+/* LISTO */
 
 function listo(n){
 
+db.ref("pedidos/"+n).update({
+estado:"Listo"
+})
+
+setTimeout(()=>{
+
 db.ref("pedidos/"+n).remove()
+
+},2000)
 
 }
 
@@ -237,7 +249,7 @@ document.getElementById("app").innerHTML=`
 
 <h1>Pedido</h1>
 
-<div id="estado" class="estado">Preparando</div>
+<div id="estado" class="estado">Esperando pedido...</div>
 
 <br>
 
@@ -252,8 +264,16 @@ db.ref("pedidos/"+n).on("value",snap=>{
 let datos=snap.val()
 
 if(!datos){
+return
+}
 
-document.getElementById("estado").innerHTML="Pedido listo"
+let estado=datos.estado
+
+document.getElementById("estado").innerHTML=estado
+
+if(estado==="Listo" && !avisado){
+
+avisado=true
 
 document.body.classList.add("alerta")
 
@@ -261,12 +281,7 @@ if(sonidoActivado){
 sonarAlarma()
 }
 
-return
 }
-
-let estado=datos.estado
-
-document.getElementById("estado").innerHTML=estado
 
 })
 
