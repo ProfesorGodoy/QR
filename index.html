@@ -2,15 +2,14 @@
 <html lang="es">
 
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>Sistema QR Bar</title>
 
-<!-- QR -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 
@@ -19,90 +18,86 @@
 /* ----------- ESTILO GENERAL ----------- */
 
 body{
-    font-family: 'Segoe UI', Arial, sans-serif;
-    margin:0;
-    background:#f1f4f8;
-    text-align:center;
+font-family:'Segoe UI',Arial;
+margin:0;
+background:#f2f4f7;
+text-align:center;
 }
 
 h1{
-    font-size:38px;
-    margin-top:20px;
-}
-
-h2{
-    margin:10px;
+font-size:36px;
+margin-top:20px;
 }
 
 /* ----------- CONTENEDOR ----------- */
 
 #app{
-    width:95%;
-    max-width:900px;
-    margin:auto;
+width:95%;
+max-width:900px;
+margin:auto;
 }
 
 /* ----------- BOTONES ----------- */
 
 button{
-    padding:14px 22px;
-    margin:10px;
-    font-size:18px;
-    background:#2c7be5;
-    color:white;
-    border:none;
-    border-radius:8px;
-    cursor:pointer;
-    transition:0.2s;
+padding:14px 22px;
+margin:10px;
+font-size:18px;
+background:#2c7be5;
+color:white;
+border:none;
+border-radius:8px;
+cursor:pointer;
+transition:0.2s;
 }
 
 button:hover{
-    background:#1a68d1;
+background:#1a68d1;
 }
 
 /* ----------- TABLA ----------- */
 
 table{
-    width:100%;
-    margin-top:20px;
-    border-collapse:collapse;
-    background:white;
-    box-shadow:0 2px 10px rgba(0,0,0,0.1);
+width:100%;
+margin-top:20px;
+border-collapse:collapse;
+background:white;
+box-shadow:0 2px 10px rgba(0,0,0,0.1);
 }
 
 th{
-    background:#2c7be5;
-    color:white;
-    padding:12px;
+background:#2c7be5;
+color:white;
+padding:12px;
 }
 
 td{
-    padding:12px;
-    border-bottom:1px solid #ddd;
+padding:12px;
+border-bottom:1px solid #ddd;
 }
 
 tr:hover{
-    background:#f3f6fa;
+background:#f3f6fa;
 }
 
 /* ----------- ESTADO CLIENTE ----------- */
 
 .estado{
-    font-size:60px;
-    font-weight:bold;
-    margin-top:20px;
+font-size:60px;
+font-weight:bold;
+margin-top:20px;
 }
 
-/* ----------- ALERTA PARPADEO ----------- */
+/* ----------- ALERTA ----------- */
 
 .alerta{
-    animation:flash 0.6s infinite;
+animation:flash 0.6s infinite;
 }
 
 @keyframes flash{
-    0%{background:red;color:white;}
-    50%{background:white;color:red;}
-    100%{background:red;color:white;}
+0%{background:red;color:white;}
+50%{background:white;color:red;}
+100%{background:red;color:white;}
 }
 
 </style>
@@ -118,25 +113,35 @@ tr:hover{
 /* ---------------- SONIDO ---------------- */
 
 let sonidoActivado=false
+
 const beep=new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg")
 
 function activarSonido(){
-    beep.play()
-    sonidoActivado=true
-    alert("Sonido activado")
+
+beep.play()
+
+sonidoActivado=true
+
+alert("Sonido activado")
+
 }
 
 function sonarAlarma(){
-    setInterval(()=>{
-        beep.currentTime=0
-        beep.play()
-    },1000)
-}
 
+setInterval(()=>{
+
+beep.currentTime=0
+
+beep.play()
+
+},1000)
+
+}
 
 /* ---------------- FIREBASE ---------------- */
 
-const firebaseConfig={
+const firebaseConfig = {
+
 apiKey:"TU_API_KEY",
 authDomain:"sistema-bar-782a3.firebaseapp.com",
 databaseURL:"https://sistema-bar-782a3-default-rtdb.firebaseio.com",
@@ -144,6 +149,7 @@ projectId:"sistema-bar-782a3",
 storageBucket:"sistema-bar-782a3.appspot.com",
 messagingSenderId:"806007161788",
 appId:"1:806007161788:web:d4e19142ac9fda3fb121b9"
+
 }
 
 firebase.initializeApp(firebaseConfig)
@@ -152,15 +158,16 @@ const db=firebase.database()
 
 let contador=1
 
-
-/* ---------------- CREAR PEDIDO ---------------- */
+/* ---------------- NUEVO PEDIDO ---------------- */
 
 function nuevoPedido(){
 
 let numero=contador++
 
 db.ref("pedidos/"+numero).set({
+
 estado:"Preparando"
+
 })
 
 let url=window.location.href.split("?")[0]+"?pedido="+numero
@@ -172,7 +179,6 @@ document.getElementById("qrcode").innerHTML=""
 new QRCode(document.getElementById("qrcode"),url)
 
 }
-
 
 /* ---------------- PANEL BAR ---------------- */
 
@@ -193,9 +199,11 @@ document.getElementById("app").innerHTML=`
 <table>
 
 <tr>
+
 <th>Pedido</th>
 <th>Estado</th>
 <th>Acción</th>
+
 </tr>
 
 <tbody id="tabla"></tbody>
@@ -210,7 +218,11 @@ let datos=snap.val()
 
 let html=""
 
-for(let p in datos){
+if(!datos)return
+
+let pedidos=Object.keys(datos).reverse()
+
+pedidos.forEach(p=>{
 
 html+=`
 
@@ -221,14 +233,16 @@ html+=`
 <td>${datos[p].estado}</td>
 
 <td>
+
 <button onclick="listo(${p})">Listo</button>
+
 </td>
 
 </tr>
 
 `
 
-}
+})
 
 document.getElementById("tabla").innerHTML=html
 
@@ -236,17 +250,17 @@ document.getElementById("tabla").innerHTML=html
 
 }
 
-
 /* ---------------- MARCAR LISTO ---------------- */
 
 function listo(n){
 
 db.ref("pedidos/"+n).update({
+
 estado:"Listo"
+
 })
 
 }
-
 
 /* ---------------- CLIENTE ---------------- */
 
@@ -279,7 +293,9 @@ avisado=true
 document.body.classList.add("alerta")
 
 if(sonidoActivado){
+
 sonarAlarma()
+
 }
 
 }
@@ -287,7 +303,6 @@ sonarAlarma()
 })
 
 }
-
 
 /* ---------------- DETECTAR MODO ---------------- */
 
@@ -308,4 +323,5 @@ modoBar()
 </script>
 
 </body>
+
 </html>
