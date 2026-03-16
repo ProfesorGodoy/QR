@@ -42,28 +42,15 @@ border:none;
 border-radius:10px;
 }
 
-/* PARPADEO */
-
 .alerta{
 animation:flash 0.6s infinite;
 }
 
 @keyframes flash{
 
-0%{
-background:red;
-color:white;
-}
-
-50%{
-background:white;
-color:red;
-}
-
-100%{
-background:red;
-color:white;
-}
+0%{background:red;color:white;}
+50%{background:white;color:red;}
+100%{background:red;color:white;}
 
 }
 
@@ -93,7 +80,6 @@ padding:12px;
 /* SONIDO */
 
 let sonidoActivado=false
-
 const beep = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg")
 
 function activarSonido(){
@@ -119,7 +105,7 @@ beep.play()
 
 const firebaseConfig = {
 
-apiKey: "AIzaSyCCT3w5_33bR-RZ5TTAY_tGk9Ur5UE5mLM",
+apiKey: "TU_API_KEY",
 authDomain: "sistema-bar-782a3.firebaseapp.com",
 databaseURL: "https://sistema-bar-782a3-default-rtdb.firebaseio.com",
 projectId: "sistema-bar-782a3",
@@ -133,16 +119,23 @@ firebase.initializeApp(firebaseConfig)
 
 const db=firebase.database()
 
-let contador=1
+/* NUMERO UNICO */
+
+function generarNumero(){
+
+return Date.now() // nunca se repite
+
+}
 
 /* CREAR PEDIDO */
 
 function nuevoPedido(){
 
-let numero=contador++
+let numero=generarNumero()
 
 db.ref("pedidos/"+numero).set({
-estado:"Preparando"
+estado:"Preparando",
+timestamp:numero
 })
 
 let url=window.location.href.split("?")[0]+"?pedido="+numero
@@ -161,7 +154,7 @@ function modoBar(){
 
 document.getElementById("app").innerHTML=`
 
-<h1>🍔 Panel del Bar</h1>
+<h1>Panel del Bar</h1>
 
 <h2 id="num"></h2>
 
@@ -189,23 +182,38 @@ db.ref("pedidos").on("value",snap=>{
 
 let datos=snap.val()
 
+if(!datos) return
+
+let pedidos=Object.entries(datos)
+
+/* ordenar por mas nuevos */
+
+pedidos.sort((a,b)=>b[1].timestamp-a[1].timestamp)
+
+/* SOLO 10 PEDIDOS */
+
+pedidos=pedidos.slice(0,10)
+
 let html=""
 
-for(let p in datos){
+pedidos.forEach(p=>{
+
+let numero=p[0]
+let estado=p[1].estado
 
 html+=`
 
 <tr>
-<td>#${p}</td>
-<td>${datos[p].estado}</td>
+<td>#${numero}</td>
+<td>${estado}</td>
 <td>
-<button onclick="listo(${p})">Listo</button>
+<button onclick="listo('${numero}')">Listo</button>
 </td>
 </tr>
 
 `
 
-}
+})
 
 document.getElementById("tabla").innerHTML=html
 
@@ -213,11 +221,11 @@ document.getElementById("tabla").innerHTML=html
 
 }
 
+/* LISTO Y ELIMINAR */
+
 function listo(n){
 
-db.ref("pedidos/"+n).update({
-estado:"Listo"
-})
+db.ref("pedidos/"+n).remove()
 
 }
 
@@ -227,13 +235,13 @@ function modoCliente(n){
 
 document.getElementById("app").innerHTML=`
 
-<h1>🍔 Pedido #${n}</h1>
+<h1>Pedido</h1>
 
 <div id="estado" class="estado">Preparando</div>
 
 <br>
 
-<button onclick="activarSonido()">🔊 Activar sonido</button>
+<button onclick="activarSonido()">Activar sonido</button>
 
 `
 
@@ -241,23 +249,24 @@ let avisado=false
 
 db.ref("pedidos/"+n).on("value",snap=>{
 
-let estado=snap.val().estado
+let datos=snap.val()
 
-document.getElementById("estado").innerHTML=estado
+if(!datos){
 
-if(estado==="Listo" && !avisado){
-
-avisado=true
+document.getElementById("estado").innerHTML="Pedido listo"
 
 document.body.classList.add("alerta")
 
 if(sonidoActivado){
-
 sonarAlarma()
-
 }
 
+return
 }
+
+let estado=datos.estado
+
+document.getElementById("estado").innerHTML=estado
 
 })
 
