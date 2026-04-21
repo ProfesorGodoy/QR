@@ -2,20 +2,15 @@
 <html lang="es">
 
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Sistema QR Bar</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 
 <style>
-
-/* ----------- ESTILO GENERAL ----------- */
 
 body{
 font-family:'Segoe UI',Arial;
@@ -29,15 +24,11 @@ font-size:36px;
 margin-top:20px;
 }
 
-/* ----------- CONTENEDOR ----------- */
-
 #app{
 width:95%;
 max-width:900px;
 margin:auto;
 }
-
-/* ----------- BOTONES ----------- */
 
 button{
 padding:14px 22px;
@@ -48,14 +39,11 @@ color:white;
 border:none;
 border-radius:8px;
 cursor:pointer;
-transition:0.2s;
 }
 
 button:hover{
 background:#1a68d1;
 }
-
-/* ----------- TABLA ----------- */
 
 table{
 width:100%;
@@ -76,19 +64,19 @@ padding:12px;
 border-bottom:1px solid #ddd;
 }
 
-tr:hover{
-background:#f3f6fa;
-}
-
-/* ----------- ESTADO CLIENTE ----------- */
-
 .estado{
 font-size:60px;
 font-weight:bold;
 margin-top:20px;
 }
 
-/* ----------- ALERTA ----------- */
+.preparando{
+color:orange;
+}
+
+.listo{
+color:green;
+}
 
 .alerta{
 animation:flash 0.6s infinite;
@@ -113,35 +101,27 @@ animation:flash 0.6s infinite;
 /* ---------------- SONIDO ---------------- */
 
 let sonidoActivado=false
+let alarmaIntervalo=null
 
 const beep=new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg")
 
 function activarSonido(){
-
 beep.play()
-
 sonidoActivado=true
-
 alert("Sonido activado")
-
 }
 
 function sonarAlarma(){
-
-setInterval(()=>{
-
+if(alarmaIntervalo) return
+alarmaIntervalo=setInterval(()=>{
 beep.currentTime=0
-
 beep.play()
-
 },1000)
-
 }
 
 /* ---------------- FIREBASE ---------------- */
 
 const firebaseConfig = {
-
 apiKey:"TU_API_KEY",
 authDomain:"sistema-bar-782a3.firebaseapp.com",
 databaseURL:"https://sistema-bar-782a3-default-rtdb.firebaseio.com",
@@ -149,35 +129,27 @@ projectId:"sistema-bar-782a3",
 storageBucket:"sistema-bar-782a3.appspot.com",
 messagingSenderId:"806007161788",
 appId:"1:806007161788:web:d4e19142ac9fda3fb121b9"
-
 }
 
 firebase.initializeApp(firebaseConfig)
-
 const db=firebase.database()
-
-let contador=1
 
 /* ---------------- NUEVO PEDIDO ---------------- */
 
 function nuevoPedido(){
 
-let numero=contador++
+let numero=Date.now() // ID único
 
 db.ref("pedidos/"+numero).set({
-
 estado:"Preparando"
-
 })
 
 let url=window.location.href.split("?")[0]+"?pedido="+numero
 
 document.getElementById("num").innerHTML="Pedido #"+numero
-
 document.getElementById("qrcode").innerHTML=""
 
 new QRCode(document.getElementById("qrcode"),url)
-
 }
 
 /* ---------------- PANEL BAR ---------------- */
@@ -199,11 +171,9 @@ document.getElementById("app").innerHTML=`
 <table>
 
 <tr>
-
 <th>Pedido</th>
 <th>Estado</th>
 <th>Acción</th>
-
 </tr>
 
 <tbody id="tabla"></tbody>
@@ -215,14 +185,24 @@ document.getElementById("app").innerHTML=`
 db.ref("pedidos").on("value",snap=>{
 
 let datos=snap.val()
-
 let html=""
 
-if(!datos)return
+if(!datos){
+document.getElementById("tabla").innerHTML=""
+return
+}
 
 let pedidos=Object.keys(datos).reverse()
 
 pedidos.forEach(p=>{
+
+let estado = datos[p]?.estado || "Sin estado"
+
+let clase = estado==="Listo" ? "listo" : "preparando"
+
+let boton = estado==="Listo"
+? "✔"
+: `<button onclick="listo('${p}')">Listo</button>`
 
 html+=`
 
@@ -230,13 +210,9 @@ html+=`
 
 <td>#${p}</td>
 
-<td>${datos[p].estado}</td>
+<td class="${clase}">${estado}</td>
 
-<td>
-
-<button onclick="listo(${p})">Listo</button>
-
-</td>
+<td>${boton}</td>
 
 </tr>
 
@@ -255,9 +231,7 @@ document.getElementById("tabla").innerHTML=html
 function listo(n){
 
 db.ref("pedidos/"+n).update({
-
 estado:"Listo"
-
 })
 
 }
@@ -270,7 +244,7 @@ document.getElementById("app").innerHTML=`
 
 <h1>Pedido #${n}</h1>
 
-<div id="estado" class="estado">Preparando</div>
+<div id="estado" class="estado preparando">Preparando</div>
 
 <br>
 
@@ -282,9 +256,16 @@ let avisado=false
 
 db.ref("pedidos/"+n).on("value",snap=>{
 
-let estado=snap.val().estado
+let data=snap.val()
+if(!data) return
 
-document.getElementById("estado").innerHTML=estado
+let estado=data.estado || "Preparando"
+
+let estadoDiv=document.getElementById("estado")
+
+estadoDiv.innerHTML=estado
+
+estadoDiv.className="estado "+(estado==="Listo"?"listo":"preparando")
 
 if(estado==="Listo" && !avisado){
 
@@ -293,9 +274,7 @@ avisado=true
 document.body.classList.add("alerta")
 
 if(sonidoActivado){
-
 sonarAlarma()
-
 }
 
 }
@@ -307,17 +286,12 @@ sonarAlarma()
 /* ---------------- DETECTAR MODO ---------------- */
 
 const params=new URLSearchParams(window.location.search)
-
 const pedido=params.get("pedido")
 
 if(pedido){
-
 modoCliente(pedido)
-
 }else{
-
 modoBar()
-
 }
 
 </script>
